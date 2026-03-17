@@ -32,7 +32,7 @@ spec:
                   name: vault-color-secret
                   key: bg_color
             - name: SECRET_SOURCE
-              value: "vault-kv → VSO → k8s-secret"
+              value: "vault-kv -> VSO -> k8s-secret"
             - name: VAULT_SECRET_PATH
               value: "secret/data/demo/color"
             - name: APP_VERSION

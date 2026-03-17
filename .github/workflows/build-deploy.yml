@@ -1,5 +1,5 @@
 # =============================================================================
-# CI/CD Pipeline: Build Go app → Push to GHCR → Update K8s manifests
+# CI/CD Pipeline: Build Go app -> Push to GHCR -> Update K8s manifests
 # Secrets are pulled from Vault at runtime via OIDC (JWT auth, zero standing creds)
 # ArgoCD watches the k8s/ directory and syncs automatically
 # =============================================================================
@@ -20,7 +20,7 @@ env:
 permissions:
   contents: write     # To push updated manifests back
   packages: write     # To push to GHCR
-  id-token: write     # Required for GitHub OIDC → Vault JWT auth
+  id-token: write     # Required for GitHub OIDC -> Vault JWT auth
 
 jobs:
   build-and-push:
