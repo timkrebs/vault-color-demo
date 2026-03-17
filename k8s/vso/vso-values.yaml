@@ -1,0 +1,26 @@
+# =============================================================================
+# Vault Secrets Operator - Helm Values for EKS
+# Install: helm install vault-secrets-operator hashicorp/vault-secrets-operator \
+#          -n vault-secrets-operator-system --create-namespace \
+#          -f vso-values.yaml
+# =============================================================================
+
+defaultVaultConnection:
+  enabled: false  # We define VaultConnection per-namespace
+
+controller:
+  replicas: 1
+  manager:
+    resources:
+      requests:
+        cpu: 50m
+        memory: 128Mi
+      limits:
+        cpu: 200m
+        memory: 256Mi
+
+  # How often VSO reconciles secrets globally
+  # Individual VaultStaticSecrets can override with refreshAfter
+  clientCacheSettings:
+    cacheSize: 10000
+    persistenceModel: direct-encrypted

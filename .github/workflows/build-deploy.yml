@@ -1,0 +1,133 @@
+# =============================================================================
+# CI/CD Pipeline: Build Go app → Push to GHCR → Update K8s manifests
+# Secrets are pulled from Vault at runtime via OIDC (JWT auth, zero standing creds)
+# ArgoCD watches the k8s/ directory and syncs automatically
+# =============================================================================
+name: Build and Deploy
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'app/**'
+      - '.github/workflows/build-deploy.yml'
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository_owner }}/vault-color-demo
+  VAULT_ADDR: https://vault-cluster-public-vault-31d38d78.4e290157.z1.hashicorp.cloud:8200
+
+permissions:
+  contents: write     # To push updated manifests back
+  packages: write     # To push to GHCR
+  id-token: write     # Required for GitHub OIDC → Vault JWT auth
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    outputs:
+      image_tag: ${{ steps.meta.outputs.version }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+
+      - name: Run tests
+        working-directory: app
+        run: go test ./... -v
+
+      # -----------------------------------------------------------------------
+      # Authenticate to Vault via GitHub OIDC (JWT) — no static tokens needed
+      # Vault validates the GitHub-issued JWT and returns a short-lived token
+      # -----------------------------------------------------------------------
+      - name: Retrieve secrets from Vault
+        uses: hashicorp/vault-action@v3
+        with:
+          url: ${{ env.VAULT_ADDR }}
+          namespace: admin
+          method: jwt
+          role: github-actions-ci
+          exportToken: true
+          secrets: |
+            secret/data/ci/github-secrets DEPLOY_WEBHOOK_URL | DEPLOY_WEBHOOK_URL ;
+            secret/data/ci/github-secrets REGISTRY_TOKEN | REGISTRY_TOKEN
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=sha,prefix=
+            type=raw,value=latest
+
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: app
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+
+      # -----------------------------------------------------------------------
+      # Use the DEPLOY_WEBHOOK_URL secret pulled from Vault via OIDC
+      # No GitHub Secrets needed — Vault is the single source of truth
+      # -----------------------------------------------------------------------
+      - name: Notify deployment (Vault secret via OIDC)
+        if: env.DEPLOY_WEBHOOK_URL != ''
+        run: |
+          curl -s -X POST "${DEPLOY_WEBHOOK_URL}" \
+            -H "Content-Type: application/json" \
+            -d '{"text": "vault-color-demo deployed: ${{ steps.meta.outputs.version }}"}'
+        continue-on-error: true
+
+      - name: Revoke Vault token
+        if: always()
+        run: |
+          curl -s -X POST -H "X-Vault-Token: ${VAULT_TOKEN}" \
+            "${VAULT_ADDR}/v1/auth/token/revoke-self" || true
+
+  update-manifests:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Update image tag in deployment manifest
+        run: |
+          IMAGE_TAG="${{ needs.build-and-push.outputs.image_tag }}"
+          FULL_IMAGE="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${IMAGE_TAG}"
+
+          echo "Updating deployment to image: ${FULL_IMAGE}"
+
+          # Update the image tag in the deployment manifest
+          sed -i "s|image: ghcr.io/.*/vault-color-demo:.*|image: ${FULL_IMAGE}|g" \
+            k8s/deployment.yaml
+
+      - name: Commit and push manifest update
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          if git diff --quiet k8s/; then
+            echo "No manifest changes to commit"
+            exit 0
+          fi
+
+          git add k8s/deployment.yaml
+          git commit -m "chore: update image to ${{ needs.build-and-push.outputs.image_tag }} [skip ci]"
+          git push

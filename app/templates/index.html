@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vault + Kubernetes Secrets Demo</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            background: {{.BackgroundColor}};
+            color: #fff;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background-color 0.5s ease;
+        }
+
+        .container {
+            text-align: center;
+            max-width: 720px;
+            padding: 2rem;
+        }
+
+        .logo {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 1.5rem;
+            background: rgba(255,255,255,0.15);
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.5rem;
+            backdrop-filter: blur(8px);
+        }
+
+        h1 {
+            font-size: 2rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            text-shadow: 0 2px 12px rgba(0,0,0,0.3);
+        }
+
+        .subtitle {
+            font-size: 1.1rem;
+            opacity: 0.85;
+            margin-bottom: 2rem;
+        }
+
+        .card {
+            background: rgba(0,0,0,0.25);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255,255,255,0.12);
+            border-radius: 12px;
+            padding: 1.5rem;
+            text-align: left;
+            margin-bottom: 1rem;
+        }
+
+        .card h3 {
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            opacity: 0.6;
+            margin-bottom: 0.75rem;
+        }
+
+        .row {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+            font-size: 0.95rem;
+        }
+
+        .row:last-child { border-bottom: none; }
+
+        .label { opacity: 0.7; }
+
+        .value {
+            font-family: 'SF Mono', 'Fira Code', monospace;
+            font-size: 0.85rem;
+            background: rgba(255,255,255,0.08);
+            padding: 2px 8px;
+            border-radius: 4px;
+        }
+
+        .color-preview {
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            border-radius: 3px;
+            background: {{.BackgroundColor}};
+            border: 2px solid rgba(255,255,255,0.4);
+            vertical-align: middle;
+            margin-right: 6px;
+        }
+
+        .flow {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            margin-top: 1.5rem;
+            font-size: 0.85rem;
+            opacity: 0.7;
+        }
+
+        .flow-step {
+            background: rgba(255,255,255,0.1);
+            padding: 4px 10px;
+            border-radius: 6px;
+        }
+
+        .flow-arrow { font-size: 1.1rem; }
+
+        .pulse {
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.7; }
+            50% { opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">&#x1F512;</div>
+        <h1>Vault + Kubernetes Secrets</h1>
+        <p class="subtitle">Background color dynamically set from a Vault-synced Kubernetes Secret</p>
+
+        <div class="card">
+            <h3>Secret Details</h3>
+            <div class="row">
+                <span class="label">Background Color</span>
+                <span class="value"><span class="color-preview"></span>{{.BackgroundColor}}</span>
+            </div>
+            <div class="row">
+                <span class="label">Secret Source</span>
+                <span class="value">{{.SecretSource}}</span>
+            </div>
+            <div class="row">
+                <span class="label">Vault Path</span>
+                <span class="value">{{.VaultPath}}</span>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>Runtime Info</h3>
+            <div class="row">
+                <span class="label">Pod Hostname</span>
+                <span class="value">{{.Hostname}}</span>
+            </div>
+            <div class="row">
+                <span class="label">Namespace</span>
+                <span class="value">{{.Namespace}}</span>
+            </div>
+            <div class="row">
+                <span class="label">App Version</span>
+                <span class="value">{{.AppVersion}}</span>
+            </div>
+            <div class="row">
+                <span class="label">Rendered At</span>
+                <span class="value">{{.Timestamp}}</span>
+            </div>
+        </div>
+
+        <div class="flow pulse">
+            <span class="flow-step">Vault KV</span>
+            <span class="flow-arrow">&rarr;</span>
+            <span class="flow-step">VSO</span>
+            <span class="flow-arrow">&rarr;</span>
+            <span class="flow-step">K8s Secret</span>
+            <span class="flow-arrow">&rarr;</span>
+            <span class="flow-step">Pod Env</span>
+            <span class="flow-arrow">&rarr;</span>
+            <span class="flow-step">This Page</span>
+        </div>
+    </div>
+
+    <script>
+        // Auto-refresh every 10 seconds to pick up secret changes
+        setTimeout(() => location.reload(), 10000);
+    </script>
+</body>
+</html>

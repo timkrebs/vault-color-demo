@@ -1,0 +1,23 @@
+# =============================================================================
+# VaultConnection: Tells VSO where your Vault instance lives
+# Update the address to match your Vault Enterprise endpoint
+# =============================================================================
+apiVersion: secrets.hashicorp.com/v1beta1
+kind: VaultConnection
+metadata:
+  name: vault-connection
+  namespace: vault-demo
+spec:
+  # Your Vault Enterprise address
+  # Options:
+  #   - Proxmox Vault via Cloudflare Tunnel: https://vault.proxcloud.io
+  #   - HCP Vault: https://your-cluster.vault.hashicorp.cloud:8200
+  #   - In-cluster: http://vault.vault.svc.cluster.local:8200
+  # HCP Vault Dedicated cluster
+  address: https://vault-cluster-public-vault-31d38d78.4e290157.z1.hashicorp.cloud:8200
+
+  # HCP Vault Dedicated uses valid TLS certs
+  skipTLSVerify: false
+
+  # If using a custom CA, reference it here
+  # caCertSecretRef: vault-ca-cert

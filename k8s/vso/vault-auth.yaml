@@ -1,0 +1,48 @@
+# =============================================================================
+# VaultAuth: Configures how VSO authenticates to Vault
+# Uses Kubernetes auth method (JWT from ServiceAccount token)
+# =============================================================================
+apiVersion: secrets.hashicorp.com/v1beta1
+kind: VaultAuth
+metadata:
+  name: vault-auth
+  namespace: vault-demo
+spec:
+  vaultConnectionRef: vault-connection
+
+  # HCP Vault Dedicated: all resources live under the "admin" namespace
+  namespace: admin
+
+  method: kubernetes
+  mount: kubernetes  # The auth mount path in Vault
+
+  kubernetes:
+    role: vault-demo-role
+    serviceAccount: default
+
+    # If Vault is external to the cluster, you need to specify the
+    # audiences for the ServiceAccount token
+    audiences:
+      - vault
+---
+# =============================================================================
+# Vault-side setup for Kubernetes auth (run this on Vault):
+#
+#   vault auth enable kubernetes
+#
+#   vault write auth/kubernetes/config \
+#     kubernetes_host="https://<EKS_API_ENDPOINT>" \
+#     kubernetes_ca_cert=@/path/to/k8s-ca.pem
+#
+#   vault policy write vault-demo-policy - <<EOF
+#   path "secret/data/demo/*" {
+#     capabilities = ["read"]
+#   }
+#   EOF
+#
+#   vault write auth/kubernetes/role/vault-demo-role \
+#     bound_service_account_names=default \
+#     bound_service_account_namespaces=vault-demo \
+#     policies=vault-demo-policy \
+#     ttl=1h
+# =============================================================================
