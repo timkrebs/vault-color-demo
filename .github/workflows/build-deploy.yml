@@ -36,10 +36,13 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: '1.22'
+          cache: false
 
       - name: Run tests
         working-directory: app
-        run: go test ./... -v
+        run: |
+          go mod tidy
+          go test ./... -v
 
       # -----------------------------------------------------------------------
       # Authenticate to Vault via GitHub OIDC (JWT) — no static tokens needed
