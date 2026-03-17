@@ -52,6 +52,7 @@ jobs:
           namespace: admin
           method: jwt
           role: github-actions-ci
+          jwtGithubAudience: https://github.com/timkrebs/vault-color-demo
           exportToken: true
           secrets: |
             secret/data/ci/github-secrets DEPLOY_WEBHOOK_URL | DEPLOY_WEBHOOK_URL ;
