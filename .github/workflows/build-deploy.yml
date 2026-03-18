@@ -59,7 +59,8 @@ jobs:
           exportToken: true
           secrets: |
             secret/data/ci/github-secrets DEPLOY_WEBHOOK_URL | DEPLOY_WEBHOOK_URL ;
-            secret/data/ci/github-secrets REGISTRY_TOKEN | REGISTRY_TOKEN
+            secret/data/ci/github-secrets REGISTRY_TOKEN | REGISTRY_TOKEN ;
+            secret/data/ci/github-secrets BG_COLOR | BG_COLOR
 
       - name: Log in to GHCR
         uses: docker/login-action@v3
@@ -77,6 +78,10 @@ jobs:
             type=sha,prefix=
             type=raw,value=latest
 
+      # -----------------------------------------------------------------------
+      # Inject BG_COLOR from Vault into the Docker image at build time
+      # Vault (KV) -> GitHub OIDC -> build-arg -> baked into container
+      # -----------------------------------------------------------------------
       - name: Build and push
         uses: docker/build-push-action@v5
         with:
@@ -84,6 +89,8 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            BG_COLOR=${{ env.BG_COLOR }}
 
       # -----------------------------------------------------------------------
       # Use the DEPLOY_WEBHOOK_URL secret pulled from Vault via OIDC

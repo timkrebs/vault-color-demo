@@ -9,6 +9,10 @@ COPY go.mod ./
 RUN go mod download
 
 COPY . .
+
+# BG_COLOR is injected from Vault via GitHub OIDC at build time
+ARG BG_COLOR="#1a1a2e"
+
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o vault-color-demo .
 
 # =============================================================================
@@ -19,6 +23,9 @@ FROM gcr.io/distroless/static-debian12:nonroot
 WORKDIR /app
 COPY --from=builder /build/vault-color-demo .
 COPY --from=builder /build/templates/ ./templates/
+
+# Bake the Vault-provided BG_COLOR into the image as default
+ENV BG_COLOR=${BG_COLOR}
 
 EXPOSE 8080
 
